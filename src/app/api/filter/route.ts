@@ -29,10 +29,25 @@ Return ONLY valid JSON. Format your output exactly like this example:
   }
 ]`;
 
+const MAX_TRANSCRIPT_CHARS = 20_000;
+
 const filterCardSchema = z.object({
   category: z.enum(["DEADLINE", "EXAM_HINT", "FORMULA", "FACT"]),
   content: z.string().min(1),
 });
+
+function responseWithNoStore(body: unknown, status = 200) {
+  return NextResponse.json(body, {
+    status,
+    headers: {
+      "Cache-Control": "no-store",
+    },
+  });
+}
+
+function normalizeCardContent(content: string): string {
+  return content.replace(/\s+/g, " ").trim();
+}
 
 export async function POST(request: Request) {
   try {
@@ -40,28 +55,47 @@ export async function POST(request: Request) {
     const transcript = body?.transcript?.trim();
 
     if (!transcript) {
-      return NextResponse.json({ error: "transcript is required" }, { status: 400 });
+      return responseWithNoStore({ error: "transcript is required" }, 400);
     }
 
     if (!process.env.OPENAI_API_KEY) {
-      return NextResponse.json(
-        { error: "OPENAI_API_KEY is not configured" },
-        { status: 500 },
-      );
+      return responseWithNoStore({ error: "OPENAI_API_KEY is not configured" }, 500);
     }
+
+    const boundedTranscript = transcript.slice(-MAX_TRANSCRIPT_CHARS);
 
     const result = await generateObject({
       model: openai(process.env.OPENAI_MODEL ?? "gpt-4o-mini"),
       output: "array",
       schema: filterCardSchema,
       system: FILTER_SYSTEM_PROMPT,
-      prompt: `Lecture transcript chunk:\n\n${transcript}`,
+      prompt: `Lecture transcript chunk:\n\n${boundedTranscript}`,
       temperature: 0.2,
     });
 
-    return NextResponse.json(result.object);
+    const deduped = new Set<string>();
+    const cards = result.object
+      .map((card) => ({
+        category: card.category,
+        content: normalizeCardContent(card.content),
+      }))
+      .filter((card) => {
+        if (!card.content) {
+          return false;
+        }
+
+        const signature = `${card.category}:${card.content.toLowerCase()}`;
+        if (deduped.has(signature)) {
+          return false;
+        }
+
+        deduped.add(signature);
+        return true;
+      });
+
+    return responseWithNoStore(cards);
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unexpected filter failure";
-    return NextResponse.json({ error: message }, { status: 500 });
+    return responseWithNoStore({ error: message }, 500);
   }
 }

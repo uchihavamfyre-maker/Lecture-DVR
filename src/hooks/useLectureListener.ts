@@ -16,6 +16,8 @@ export interface UseLectureListenerOptions {
   minChunkLength?: number;
   rollingWordLimit?: number;
   panicWordCount?: number;
+  maxChunkChars?: number;
+  maxRawFeedWords?: number;
   language?: string;
   autoStart?: boolean;
   onPanicSummary?: (summary: string) => void;
@@ -70,13 +72,23 @@ type SpeechRecognitionConstructor = new () => {
 };
 
 function trimToLastWords(source: string, maxWords: number): string {
-  const tokens = source.trim().split(/\s+/);
+  const tokens = source.trim().split(/\s+/).filter(Boolean);
 
   if (tokens.length <= maxWords) {
     return tokens.join(" ");
   }
 
   return tokens.slice(tokens.length - maxWords).join(" ");
+}
+
+function trimToLastChars(source: string, maxChars: number): string {
+  const normalized = source.trim();
+
+  if (normalized.length <= maxChars) {
+    return normalized;
+  }
+
+  return normalized.slice(normalized.length - maxChars);
 }
 
 function safeUniqueId(prefix: string): string {
@@ -95,6 +107,8 @@ export function useLectureListener(
     minChunkLength = 50,
     rollingWordLimit = 1_500,
     panicWordCount = 200,
+    maxChunkChars = 12_000,
+    maxRawFeedWords = 2_500,
     language = "en-US",
     autoStart = true,
     onPanicSummary,
@@ -146,7 +160,9 @@ export function useLectureListener(
   const normalizeCards = useCallback((payload: unknown): SignalCard[] => {
     const entries = Array.isArray(payload)
       ? payload
-      : payload && typeof payload === "object" && Array.isArray((payload as { cards?: unknown[] }).cards)
+      : payload &&
+          typeof payload === "object" &&
+          Array.isArray((payload as { cards?: unknown[] }).cards)
         ? (payload as { cards: unknown[] }).cards
         : [];
 
@@ -186,7 +202,7 @@ export function useLectureListener(
       return;
     }
 
-    const chunkToProcess = transcriptBuffer.current.trim();
+    const chunkToProcess = trimToLastChars(transcriptBuffer.current, maxChunkChars);
     transcriptBuffer.current = "";
     chunkInFlight.current = true;
     setIsProcessing(true);
@@ -210,13 +226,15 @@ export function useLectureListener(
       }
     } catch (chunkError) {
       const message =
-        chunkError instanceof Error ? chunkError.message : "Failed to process lecture chunk.";
+        chunkError instanceof Error
+          ? chunkError.message
+          : "Failed to process lecture chunk.";
       reportError(message);
     } finally {
       chunkInFlight.current = false;
       setIsProcessing(false);
     }
-  }, [minChunkLength, normalizeCards, reportError]);
+  }, [maxChunkChars, minChunkLength, normalizeCards, reportError]);
 
   const startListening = useCallback(() => {
     if (!SpeechRecognitionClass) {
@@ -259,12 +277,17 @@ export function useLectureListener(
         }
 
         if (finalChunk) {
-          transcriptBuffer.current += finalChunk;
+          transcriptBuffer.current = trimToLastChars(
+            `${transcriptBuffer.current} ${finalChunk}`,
+            maxChunkChars,
+          );
           rollingAudioLog.current = trimToLastWords(
             `${rollingAudioLog.current} ${finalChunk}`,
             rollingWordLimit,
           );
-          setRawCommitted((previous) => `${previous} ${finalChunk}`.trim());
+          setRawCommitted((previous) =>
+            trimToLastWords(`${previous} ${finalChunk}`.trim(), maxRawFeedWords),
+          );
         }
 
         setRawInterim(interimChunk.trim());
@@ -286,7 +309,7 @@ export function useLectureListener(
           try {
             recognition.start();
           } catch {
-            // no-op; browser sometimes blocks rapid restarts
+            // no-op; browser can block aggressive restarts
           }
         }, 250);
       };
@@ -299,9 +322,16 @@ export function useLectureListener(
     try {
       recognitionRef.current.start();
     } catch {
-      // no-op: start can throw if called while already started
+      // no-op: start throws if already active
     }
-  }, [SpeechRecognitionClass, language, reportError, rollingWordLimit]);
+  }, [
+    SpeechRecognitionClass,
+    language,
+    maxChunkChars,
+    maxRawFeedWords,
+    reportError,
+    rollingWordLimit,
+  ]);
 
   const stopListening = useCallback(() => {
     shouldRestart.current = false;
@@ -311,7 +341,10 @@ export function useLectureListener(
   }, []);
 
   const triggerPanic = useCallback(async (): Promise<string | null> => {
-    const snippet = trimToLastWords(rollingAudioLog.current, panicWordCount);
+    const snippet = trimToLastChars(
+      trimToLastWords(rollingAudioLog.current, panicWordCount),
+      maxChunkChars,
+    );
 
     if (!snippet) {
       reportError("Not enough audio context captured yet.");
@@ -335,7 +368,9 @@ export function useLectureListener(
       const summary =
         typeof payload === "string"
           ? payload
-          : payload && typeof payload === "object" && typeof (payload as { summary?: unknown }).summary === "string"
+          : payload &&
+                typeof payload === "object" &&
+                typeof (payload as { summary?: unknown }).summary === "string"
             ? ((payload as { summary: string }).summary ?? "").trim()
             : "";
 
@@ -347,13 +382,14 @@ export function useLectureListener(
       onPanicSummary?.(summary);
       return summary;
     } catch (panicError) {
-      const message = panicError instanceof Error ? panicError.message : "Panic extraction failed.";
+      const message =
+        panicError instanceof Error ? panicError.message : "Panic extraction failed.";
       reportError(message);
       return null;
     } finally {
       setIsPanicProcessing(false);
     }
-  }, [onPanicSummary, panicWordCount, reportError]);
+  }, [maxChunkChars, onPanicSummary, panicWordCount, reportError]);
 
   const clearSignalCards = useCallback(() => {
     setSignalCards([]);

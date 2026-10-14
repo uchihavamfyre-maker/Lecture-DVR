@@ -23,6 +23,10 @@ function formatElapsed(seconds: number): string {
   return `${hrs}:${mins}:${secs}`;
 }
 
+function normalizePanicSummary(summary: string): string {
+  return summary.replace(/^\*\*(.*)\*\*$/s, "$1").trim();
+}
+
 export default function SessionPage({
   params,
 }: {
@@ -75,12 +79,7 @@ export default function SessionPage({
     setPanicToast("Processing...");
     const summary = await triggerPanic();
 
-    if (summary) {
-      setPanicToast("Captured the last 60 seconds.");
-    } else {
-      setPanicToast("Unable to process panic snippet.");
-    }
-
+    setPanicToast(summary ? "Captured the last 60 seconds." : "Unable to process panic snippet.");
     window.setTimeout(() => setPanicToast(null), 2600);
   };
 
@@ -95,8 +94,8 @@ export default function SessionPage({
           </div>
 
           <div className="flex items-center gap-6">
-            <div className="flex items-center gap-2">
-              <span className="relative flex h-3 w-3">
+            <div className="flex items-center gap-2" aria-live="polite">
+              <span className="relative flex h-3 w-3" aria-hidden>
                 <span
                   className={`absolute inline-flex h-full w-full rounded-full ${
                     isListening ? "animate-ping bg-red-500" : "bg-gray-700"
@@ -108,10 +107,12 @@ export default function SessionPage({
                   }`}
                 />
               </span>
-              <span className="text-sm text-gray-200">Live Recording</span>
+              <span className="text-sm text-gray-200">
+                {isListening ? "Live Recording" : "Recording Paused"}
+              </span>
             </div>
 
-            <div className="flex items-center gap-2 text-sm text-gray-300">
+            <div className="flex items-center gap-2 text-sm text-gray-300" aria-live="polite">
               <Timer className="h-4 w-4" />
               <span className="font-mono">{formatElapsed(elapsedSeconds)}</span>
             </div>
@@ -131,7 +132,9 @@ export default function SessionPage({
         <aside className="rounded-xl border border-gray-800 bg-gray-900 p-4 lg:col-span-3">
           <div className="mb-3 flex items-center gap-2">
             <Radio className="h-4 w-4 text-gray-500" />
-            <h2 className="text-sm font-semibold uppercase tracking-wider text-gray-400">The Raw Feed</h2>
+            <h2 className="text-sm font-semibold uppercase tracking-wider text-gray-400">
+              The Raw Feed
+            </h2>
           </div>
 
           <div
@@ -146,9 +149,11 @@ export default function SessionPage({
           <div className="mb-4 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <BrainCircuit className="h-5 w-5 text-cyan-300" />
-              <h2 className="text-sm font-semibold uppercase tracking-wider text-gray-200">The Signal Feed</h2>
+              <h2 className="text-sm font-semibold uppercase tracking-wider text-gray-200">
+                The Signal Feed
+              </h2>
             </div>
-            <span className="text-xs text-gray-400">
+            <span className="text-xs text-gray-400" aria-live="polite">
               {isProcessing ? "Filtering latest chunk..." : `${signalCards.length} cards captured`}
             </span>
           </div>
@@ -167,7 +172,9 @@ export default function SessionPage({
                   }`}
                 >
                   <div className="mb-2 flex items-center justify-between">
-                    <p className="text-xs font-semibold uppercase tracking-wider">{card.category.replace("_", " ")}</p>
+                    <p className="text-xs font-semibold uppercase tracking-wider">
+                      {card.category.replace("_", " ")}
+                    </p>
                     <span className="text-[11px] opacity-80">
                       {new Date(card.createdAt).toLocaleTimeString()}
                     </span>
@@ -187,13 +194,20 @@ export default function SessionPage({
       )}
 
       {error && (
-        <div className="fixed bottom-24 left-1/2 z-40 w-[min(92vw,520px)] -translate-x-1/2 rounded-xl border border-red-500/40 bg-red-500/20 p-4 text-sm text-red-100">
+        <div
+          role="alert"
+          className="fixed bottom-24 left-1/2 z-40 w-[min(92vw,520px)] -translate-x-1/2 rounded-xl border border-red-500/40 bg-red-500/20 p-4 text-sm text-red-100"
+        >
           {error}
         </div>
       )}
 
       {panicToast && (
-        <div className="fixed right-4 top-20 z-40 rounded-lg border border-fuchsia-400/40 bg-fuchsia-500/20 px-4 py-2 text-sm text-fuchsia-100">
+        <div
+          role="status"
+          aria-live="polite"
+          className="fixed right-4 top-20 z-40 rounded-lg border border-fuchsia-400/40 bg-fuchsia-500/20 px-4 py-2 text-sm text-fuchsia-100"
+        >
           {panicToast}
         </div>
       )}
@@ -205,7 +219,9 @@ export default function SessionPage({
               <AlertTriangle className="h-5 w-5" />
               <h3 className="text-lg font-bold uppercase tracking-widest">Wait, What?</h3>
             </div>
-            <p className="mb-5 text-2xl font-semibold leading-snug text-white">{panicSummary}</p>
+            <p className="mb-5 text-2xl font-semibold leading-snug text-white">
+              {normalizePanicSummary(panicSummary)}
+            </p>
             <button
               type="button"
               onClick={() => setShowPanicModal(false)}
@@ -220,7 +236,7 @@ export default function SessionPage({
       <button
         type="button"
         onClick={handlePanic}
-        disabled={isPanicProcessing}
+        disabled={isPanicProcessing || !isSupported}
         className="fixed bottom-6 left-1/2 z-40 -translate-x-1/2 rounded-full border border-fuchsia-300/50 bg-gradient-to-r from-red-500 to-fuchsia-600 px-8 py-4 text-sm font-black uppercase tracking-[0.18em] text-white shadow-[0_14px_40px_-10px_rgba(236,72,153,0.7)] transition hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-70"
       >
         <span className="inline-flex items-center gap-2">
