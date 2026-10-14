@@ -1,0 +1,68 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum LectureStatus {
+  RECORDING
+  COMPLETED
+}
+
+enum FlashcardCategory {
+  DEADLINE
+  EXAM_HINT
+  FORMULA
+  FACT
+}
+
+model User {
+  id        String           @id @default(uuid()) @db.Uuid
+  email     String           @unique
+  createdAt DateTime         @default(now())
+  sessions  LectureSession[]
+}
+
+model LectureSession {
+  id            String         @id @default(uuid()) @db.Uuid
+  userId        String         @db.Uuid
+  title         String
+  courseCode    String
+  date          DateTime       @default(now())
+  rawTranscript String         @db.Text
+  status        LectureStatus  @default(RECORDING)
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  flashcards    Flashcard[]
+  panicSnippets PanicSnippet[]
+
+  @@index([userId])
+  @@index([date])
+}
+
+model Flashcard {
+  id        String           @id @default(uuid()) @db.Uuid
+  sessionId String           @db.Uuid
+  category  FlashcardCategory
+  content   String           @db.Text
+  timestamp DateTime         @default(now())
+  isStarred Boolean          @default(false)
+  session   LectureSession   @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId])
+  @@index([category])
+  @@index([timestamp])
+}
+
+model PanicSnippet {
+  id        String         @id @default(uuid()) @db.Uuid
+  sessionId String         @db.Uuid
+  rawText   String         @db.Text
+  timestamp DateTime       @default(now())
+  session   LectureSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId])
+  @@index([timestamp])
+}
