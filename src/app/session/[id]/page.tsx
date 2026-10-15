@@ -37,6 +37,7 @@ export default function SessionPage({
   const { id } = use(params);
   const [panicToast, setPanicToast] = useState<string | null>(null);
   const [showPanicModal, setShowPanicModal] = useState(false);
+  const [language, setLanguage] = useState("en-US");
   const rawFeedRef = useRef<HTMLDivElement | null>(null);
 
   const {
@@ -52,7 +53,7 @@ export default function SessionPage({
     startListening,
     stopListening,
     triggerPanic,
-  } = useLectureListener();
+  } = useLectureListener({ language });
 
   const lectureMeta = useMemo(
     () => ({
@@ -94,6 +95,26 @@ export default function SessionPage({
             <p className="text-xs uppercase tracking-[0.2em] text-gray-500">Lecture DVR</p>
             <h1 className="text-lg font-semibold text-white">{lectureMeta.title}</h1>
             <p className="text-sm text-gray-400">{lectureMeta.courseCode}</p>
+            <label className="mt-2 flex items-center gap-2 text-xs text-gray-400">
+              Speech language
+              <select
+                value={language}
+                onChange={(event) => setLanguage(event.target.value)}
+                className="max-w-[155px] rounded-md border border-gray-700 bg-gray-900 px-2 py-1.5 text-xs text-gray-200"
+                aria-label="Speech recognition language"
+              >
+                <option value="en-US">English (US)</option>
+                <option value="en-IN">English (India)</option>
+                <option value="hi-IN">Hindi</option>
+                <option value="ur-PK">Urdu</option>
+                <option value="bn-IN">Bengali</option>
+                <option value="ta-IN">Tamil</option>
+                <option value="te-IN">Telugu</option>
+                <option value="mr-IN">Marathi</option>
+                <option value="gu-IN">Gujarati</option>
+                <option value="pa-IN">Punjabi</option>
+              </select>
+            </label>
           </div>
 
           <div className="flex items-center gap-6">
