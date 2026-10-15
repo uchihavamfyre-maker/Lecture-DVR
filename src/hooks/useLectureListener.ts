@@ -103,9 +103,9 @@ function appendWithoutOverlap(existing: string, incoming: string): string {
   if (!left) return right;
   if (!right) return left;
 
-  const leftWords = left.split(/\\s+/);
-  const rightWords = right.split(/\\s+/);
-  const comparable = (word: string) => word.toLocaleLowerCase().replace(/^[^\\p{L}\\p{N}]+|[^\\p{L}\\p{N}]+$/gu, "");
+  const leftWords = left.split(/\s+/);
+  const rightWords = right.split(/\s+/);
+  const comparable = (word: string) => word.toLocaleLowerCase().replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, "");
   const maxOverlap = Math.min(leftWords.length, rightWords.length, 40);
 
   for (let size = maxOverlap; size > 0; size -= 1) {
