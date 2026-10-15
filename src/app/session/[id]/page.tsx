@@ -1,7 +1,7 @@
 "use client";
 
 import { AlertTriangle, BrainCircuit, Radio, Timer, Zap } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { use, useEffect, useMemo, useRef, useState } from "react";
 import { type FlashcardCategory, useLectureListener } from "@/hooks/useLectureListener";
 
 const categoryStyles: Record<FlashcardCategory, string> = {
@@ -30,8 +30,9 @@ function normalizePanicSummary(summary: string): string {
 export default function SessionPage({
   params,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }) {
+  const { id } = use(params);
   const [panicToast, setPanicToast] = useState<string | null>(null);
   const [showPanicModal, setShowPanicModal] = useState(false);
   const rawFeedRef = useRef<HTMLDivElement | null>(null);
@@ -53,10 +54,10 @@ export default function SessionPage({
 
   const lectureMeta = useMemo(
     () => ({
-      title: `Lecture Session ${params.id.slice(0, 8)}`,
+      title: `Lecture Session ${id.slice(0, 8)}`,
       courseCode: "FPE-301",
     }),
-    [params.id],
+    [id],
   );
 
   useEffect(() => {
