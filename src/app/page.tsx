@@ -8,10 +8,17 @@ export default function HomePage() {
   const router = useRouter();
   const [courseCode, setCourseCode] = useState("");
   const [lectureTitle, setLectureTitle] = useState("");
-  const start = (event: React.FormEvent<HTMLFormElement>) => {
+  const [starting, setStarting] = useState(false);
+  const start = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    setStarting(true);
     const query = new URLSearchParams({ courseCode: courseCode.trim(), title: lectureTitle.trim() || "Lecture" });
-    router.push("/session/" + crypto.randomUUID() + "?" + query.toString());
+    const destination = "/session/" + crypto.randomUUID() + "?" + query.toString();
+    try {
+      const response = await fetch("/api/auth/me");
+      const data = await response.json();
+      router.push(data.user ? destination : "/account?next=" + encodeURIComponent(destination));
+    } catch { router.push("/account?next=" + encodeURIComponent(destination)); }
   };
   return (
     <main className="min-h-screen overflow-hidden bg-gray-950 text-gray-100">
@@ -25,7 +32,7 @@ export default function HomePage() {
           <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-cyan-400/20 bg-cyan-400/5 px-3 py-1.5 text-xs font-medium text-cyan-200"><Zap className="h-3.5 w-3.5" /> Your lecture, decoded in real time</div>
           <h1 className="max-w-3xl text-5xl font-semibold leading-[1.04] tracking-tight sm:text-6xl xl:text-7xl">Never lose the <span className="text-cyan-300">important part.</span></h1>
           <p className="mt-6 max-w-xl text-lg leading-8 text-gray-400">Lecture DVR listens to the lecture, keeps the raw transcript, and surfaces the academic signals worth revisiting: exam hints, deadlines, formulas, and core facts.</p>
-          <form onSubmit={start} className="mt-9 max-w-xl space-y-4 rounded-2xl border border-gray-800 bg-gray-900/80 p-5"><div><label htmlFor="courseCode" className="mb-2 block text-sm font-medium text-gray-200">Subject code *</label><input id="courseCode" required maxLength={40} value={courseCode} onChange={(event) => setCourseCode(event.target.value)} placeholder="e.g. FPE-301" className="w-full rounded-xl border border-gray-700 bg-gray-950 px-4 py-3 text-sm text-white outline-none focus:border-cyan-400" /></div><div><label htmlFor="lectureTitle" className="mb-2 block text-sm font-medium text-gray-200">Lecture name (optional)</label><input id="lectureTitle" maxLength={120} value={lectureTitle} onChange={(event) => setLectureTitle(event.target.value)} placeholder="e.g. Cell organelles and mitochondria" className="w-full rounded-xl border border-gray-700 bg-gray-950 px-4 py-3 text-sm text-white outline-none focus:border-cyan-400" /></div><button type="submit" className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-cyan-300 px-5 py-3.5 font-semibold text-gray-950 transition hover:bg-cyan-200">Start lecture console <ArrowRight className="h-4 w-4" /></button><p className="text-xs text-gray-500">Saved notes stay in this browser for 10 days.</p></form>
+          <form onSubmit={start} className="mt-9 max-w-xl space-y-4 rounded-2xl border border-gray-800 bg-gray-900/80 p-5"><div><label htmlFor="courseCode" className="mb-2 block text-sm font-medium text-gray-200">Subject code *</label><input id="courseCode" required maxLength={40} value={courseCode} onChange={(event) => setCourseCode(event.target.value)} placeholder="e.g. FPE-301" className="w-full rounded-xl border border-gray-700 bg-gray-950 px-4 py-3 text-sm text-white outline-none focus:border-cyan-400" /></div><div><label htmlFor="lectureTitle" className="mb-2 block text-sm font-medium text-gray-200">Lecture name (optional)</label><input id="lectureTitle" maxLength={120} value={lectureTitle} onChange={(event) => setLectureTitle(event.target.value)} placeholder="e.g. Cell organelles and mitochondria" className="w-full rounded-xl border border-gray-700 bg-gray-950 px-4 py-3 text-sm text-white outline-none focus:border-cyan-400" /></div><button type="submit" className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-cyan-300 px-5 py-3.5 font-semibold text-gray-950 transition hover:bg-cyan-200">Start lecture console <ArrowRight className="h-4 w-4" /></button><p className="text-xs text-gray-500">Your lectures sync across devices and expire after 10 days.</p></form>
           <p className="mt-4 text-xs text-gray-600">Microphone access is requested by your browser when you start a session. AI filtering requires an API key.</p>
         </div>
         <div className="relative">
