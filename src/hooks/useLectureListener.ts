@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-export type FlashcardCategory = "DEADLINE" | "EXAM_HINT" | "FORMULA" | "FACT";
+export type FlashcardCategory = "DEADLINE" | "EXAM_HINT" | "FORMULA" | "FACT" | "CONCEPT" | "EXAMPLE";
 
 export interface SignalCard {
   id: string;
@@ -131,8 +131,8 @@ export function useLectureListener(
   options: UseLectureListenerOptions = {},
 ): UseLectureListenerResult {
   const {
-    filterIntervalMs = 300_000,
-    minChunkLength = 50,
+    filterIntervalMs = 60_000,
+    minChunkLength = 20,
     rollingWordLimit = 1_500,
     panicWordCount = 200,
     maxChunkChars = 12_000,
@@ -206,7 +206,7 @@ export function useLectureListener(
         if (
           !category ||
           !content ||
-          !["DEADLINE", "EXAM_HINT", "FORMULA", "FACT"].includes(category)
+          !["DEADLINE", "EXAM_HINT", "FORMULA", "FACT", "CONCEPT", "EXAMPLE"].includes(category)
         ) {
           return null;
         }
@@ -251,7 +251,16 @@ export function useLectureListener(
       const cards = normalizeCards(payload);
 
       if (cards.length > 0) {
-        setSignalCards((previous) => [...previous, ...cards]);
+        setSignalCards((previous) => {
+          const existing = new Set(previous.map((card) => `${card.category}:${card.content.toLocaleLowerCase()}`));
+          const unique = cards.filter((card) => {
+            const key = `${card.category}:${card.content.toLocaleLowerCase()}`;
+            if (existing.has(key)) return false;
+            existing.add(key);
+            return true;
+          });
+          return unique.length ? [...previous, ...unique] : previous;
+        });
       }
     } catch (chunkError) {
       const message =
@@ -359,7 +368,9 @@ export function useLectureListener(
     recognitionRef.current?.stop();
     setIsListening(false);
     setRawInterim("");
-  }, []);
+    // Preserve useful content captured since the last automatic filter pass.
+    void processTranscriptChunk();
+  }, [processTranscriptChunk]);
 
   const triggerPanic = useCallback(async (): Promise<string | null> => {
     const snippet = trimToLastChars(
