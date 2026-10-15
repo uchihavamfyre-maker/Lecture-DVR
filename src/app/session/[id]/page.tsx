@@ -9,6 +9,8 @@ const categoryStyles: Record<FlashcardCategory, string> = {
   EXAM_HINT: "border-yellow-400/80 bg-yellow-400/10 text-yellow-50",
   FORMULA: "border-blue-400/80 bg-blue-400/10 text-blue-100",
   FACT: "border-sky-400/80 bg-sky-400/10 text-sky-100",
+  CONCEPT: "border-cyan-400/80 bg-cyan-400/10 text-cyan-100",
+  EXAMPLE: "border-purple-400/80 bg-purple-400/10 text-purple-100",
 };
 
 function formatElapsed(seconds: number): string {
@@ -150,9 +152,10 @@ export default function SessionPage({
           <div className="mb-4 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <BrainCircuit className="h-5 w-5 text-cyan-300" />
-              <h2 className="text-sm font-semibold uppercase tracking-wider text-gray-200">
-                The Signal Feed
-              </h2>
+              <div>
+                <h2 className="text-sm font-semibold uppercase tracking-wider text-gray-200">AI Study Notes</h2>
+                <p className="mt-1 text-xs text-gray-400">Key concepts, facts, formulas, examples, exam hints, and deadlines — filler filtered out</p>
+              </div>
             </div>
             <span className="text-xs text-gray-400" aria-live="polite">
               {isProcessing ? "Filtering latest chunk..." : `${signalCards.length} cards captured`}
@@ -233,6 +236,10 @@ export default function SessionPage({
           </div>
         </div>
       )}
+
+      <footer className="mx-auto max-w-7xl px-4 pb-24 pt-2 text-center text-xs text-gray-600">
+        Lecture DVR · Developer: Akshit Das
+      </footer>
 
       <button
         type="button"
