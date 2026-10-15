@@ -2,23 +2,30 @@
 
 import { ArrowRight, AudioLines, BrainCircuit, Clock3, Radio, ShieldCheck, Zap } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 
 export default function HomePage() {
   const router = useRouter();
-  const start = () => router.push("/session/live");
+  const [courseCode, setCourseCode] = useState("");
+  const [lectureTitle, setLectureTitle] = useState("");
+  const start = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const query = new URLSearchParams({ courseCode: courseCode.trim(), title: lectureTitle.trim() || "Lecture" });
+    router.push("/session/" + crypto.randomUUID() + "?" + query.toString());
+  };
   return (
     <main className="min-h-screen overflow-hidden bg-gray-950 text-gray-100">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(8,145,178,0.14),transparent_52%)]" />
       <header className="relative mx-auto flex max-w-7xl items-center justify-between px-5 py-6">
         <div className="flex items-center gap-3"><div className="flex h-10 w-10 items-center justify-center rounded-xl border border-cyan-400/30 bg-cyan-400/10"><AudioLines className="h-5 w-5 text-cyan-300" /></div><div><p className="font-semibold tracking-wide">LECTURE <span className="text-cyan-300">DVR</span></p><p className="text-[10px] uppercase tracking-[.25em] text-gray-500">Signal over noise</p></div></div>
-        <div className="hidden items-center gap-2 rounded-full border border-gray-800 bg-gray-900/70 px-3 py-2 text-xs text-gray-400 sm:flex"><span className="h-2 w-2 rounded-full bg-emerald-400" /> Local-first capture · Browser microphone</div>
+        <a href="/notes" className="inline-flex items-center gap-2 rounded-xl border border-gray-700 px-3 py-2 text-sm text-gray-200 hover:bg-gray-900">Your Notes</a>
       </header>
       <section className="relative mx-auto grid max-w-7xl items-center gap-14 px-5 pb-24 pt-14 lg:grid-cols-[1.05fr_.95fr] lg:pt-24">
         <div>
           <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-cyan-400/20 bg-cyan-400/5 px-3 py-1.5 text-xs font-medium text-cyan-200"><Zap className="h-3.5 w-3.5" /> Your lecture, decoded in real time</div>
           <h1 className="max-w-3xl text-5xl font-semibold leading-[1.04] tracking-tight sm:text-6xl xl:text-7xl">Never lose the <span className="text-cyan-300">important part.</span></h1>
           <p className="mt-6 max-w-xl text-lg leading-8 text-gray-400">Lecture DVR listens to the lecture, keeps the raw transcript, and surfaces the academic signals worth revisiting: exam hints, deadlines, formulas, and core facts.</p>
-          <div className="mt-9 flex flex-col gap-3 sm:flex-row"><button onClick={start} className="inline-flex items-center justify-center gap-2 rounded-xl bg-cyan-300 px-5 py-3.5 font-semibold text-gray-950 transition hover:bg-cyan-200">Open lecture console <ArrowRight className="h-4 w-4" /></button><a href="#workflow" className="inline-flex items-center justify-center rounded-xl border border-gray-700 px-5 py-3.5 font-medium text-gray-300 transition hover:bg-gray-900">See how it works</a></div>
+          <form onSubmit={start} className="mt-9 max-w-xl space-y-4 rounded-2xl border border-gray-800 bg-gray-900/80 p-5"><div><label htmlFor="courseCode" className="mb-2 block text-sm font-medium text-gray-200">Subject code *</label><input id="courseCode" required maxLength={40} value={courseCode} onChange={(event) => setCourseCode(event.target.value)} placeholder="e.g. FPE-301" className="w-full rounded-xl border border-gray-700 bg-gray-950 px-4 py-3 text-sm text-white outline-none focus:border-cyan-400" /></div><div><label htmlFor="lectureTitle" className="mb-2 block text-sm font-medium text-gray-200">Lecture name (optional)</label><input id="lectureTitle" maxLength={120} value={lectureTitle} onChange={(event) => setLectureTitle(event.target.value)} placeholder="e.g. Cell organelles and mitochondria" className="w-full rounded-xl border border-gray-700 bg-gray-950 px-4 py-3 text-sm text-white outline-none focus:border-cyan-400" /></div><button type="submit" className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-cyan-300 px-5 py-3.5 font-semibold text-gray-950 transition hover:bg-cyan-200">Start lecture console <ArrowRight className="h-4 w-4" /></button><p className="text-xs text-gray-500">Saved notes stay in this browser for 10 days.</p></form>
           <p className="mt-4 text-xs text-gray-600">Microphone access is requested by your browser when you start a session. AI filtering requires an API key.</p>
         </div>
         <div className="relative">
