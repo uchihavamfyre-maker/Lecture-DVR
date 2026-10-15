@@ -38,6 +38,9 @@ export interface UseLectureListenerResult {
   stopListening: () => void;
   triggerPanic: () => Promise<string | null>;
   clearSignalCards: () => void;
+  isGeneratingNotes: boolean;
+  fullLectureNotes: string | null;
+  generateFullNotes: () => Promise<string | null>;
 }
 
 type SpeechRecognitionAlternative = {
@@ -146,6 +149,7 @@ export function useLectureListener(
   const recognitionRef = useRef<InstanceType<SpeechRecognitionConstructor> | null>(null);
   const transcriptBuffer = useRef("");
   const rollingAudioLog = useRef("");
+  const fullLectureTranscript = useRef("");
   const shouldRestart = useRef(false);
   const chunkInFlight = useRef(false);
   const startTimestamp = useRef<number | null>(null);
@@ -154,6 +158,8 @@ export function useLectureListener(
   const [isListening, setIsListening] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isPanicProcessing, setIsPanicProcessing] = useState(false);
+  const [isGeneratingNotes, setIsGeneratingNotes] = useState(false);
+  const [fullLectureNotes, setFullLectureNotes] = useState<string | null>(null);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [rawCommitted, setRawCommitted] = useState("");
   const [rawInterim, setRawInterim] = useState("");
@@ -319,6 +325,7 @@ export function useLectureListener(
         if (finalChunk) {
           transcriptBuffer.current = trimToLastChars(appendWithoutOverlap(transcriptBuffer.current, finalChunk), maxChunkChars);
           rollingAudioLog.current = trimToLastWords(appendWithoutOverlap(rollingAudioLog.current, finalChunk), rollingWordLimit);
+          fullLectureTranscript.current = appendWithoutOverlap(fullLectureTranscript.current, finalChunk).slice(-80_000);
           setRawCommitted((previous) => trimToLastWords(appendWithoutOverlap(previous, finalChunk), maxRawFeedWords));
         }
 
@@ -426,6 +433,37 @@ export function useLectureListener(
     }
   }, [maxChunkChars, onPanicSummary, panicWordCount, reportError]);
 
+  const generateFullNotes = useCallback(async (): Promise<string | null> => {
+    const transcript = fullLectureTranscript.current.trim();
+    if (!transcript) {
+      reportError("No lecture transcript has been captured yet. Start recording and try again.");
+      return null;
+    }
+    setIsGeneratingNotes(true);
+    try {
+      const response = await fetch("/api/notes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ transcript }),
+      });
+      if (!response.ok) {
+        const details = (await response.json().catch(() => null)) as { error?: string } | null;
+        throw new Error(details?.error || ("Lecture notes request failed with status " + response.status));
+      }
+      const payload = (await response.json()) as { notes?: string; truncated?: boolean };
+      if (!payload.notes?.trim()) throw new Error("The AI returned empty lecture notes.");
+      setFullLectureNotes(payload.notes.trim());
+      setError(payload.truncated ? "Notes were generated from the most recent portion of the transcript because the lecture exceeded the current context limit." : null);
+      return payload.notes.trim();
+    } catch (notesError) {
+      const message = notesError instanceof Error ? notesError.message : "Failed to generate full lecture notes.";
+      reportError(message);
+      return null;
+    } finally {
+      setIsGeneratingNotes(false);
+    }
+  }, [reportError]);
+
   const clearSignalCards = useCallback(() => {
     setSignalCards([]);
   }, []);
@@ -499,5 +537,8 @@ export function useLectureListener(
     stopListening,
     triggerPanic,
     clearSignalCards,
+    isGeneratingNotes,
+    fullLectureNotes,
+    generateFullNotes,
   };
 }
