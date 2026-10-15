@@ -34,7 +34,7 @@ export default function HomePage() {
       <section id="workflow" className="relative mx-auto grid max-w-7xl gap-4 px-5 pb-24 sm:grid-cols-3">
         {[{icon:Radio,title:"Capture",text:"Browser speech recognition turns live lecture audio into a rolling transcript."},{icon:BrainCircuit,title:"Filter",text:"AI extracts deadlines, exam hints, formulas, and memorable academic facts."},{icon:Clock3,title:"Recover",text:"Hit “Wait, What?” to request a concise recap of the recent transcript."}].map((item) => <article key={item.title} className="rounded-2xl border border-gray-800 bg-gray-900/50 p-5"><item.icon className="mb-4 h-5 w-5 text-cyan-300" /><h2 className="font-semibold">{item.title}</h2><p className="mt-2 text-sm leading-6 text-gray-500">{item.text}</p></article>)}
       </section>
-      <footer className="relative border-t border-gray-900 px-5 py-6 text-center text-xs text-gray-600"><ShieldCheck className="mr-1 inline h-3.5 w-3.5" /> Lecture DVR · Built to protect your attention</footer>
+      <footer className="relative border-t border-gray-900 px-5 py-6 text-center text-xs text-gray-600"><ShieldCheck className="mr-1 inline h-3.5 w-3.5" /> Lecture DVR · Developer: Akshit Das · Built to protect your attention</footer>
     </main>
   );
 }
