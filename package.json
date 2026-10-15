@@ -8,7 +8,8 @@
     "start": "next start",
     "typecheck": "tsc --noEmit",
     "db:generate": "prisma generate",
-    "db:push": "prisma db push"
+    "db:push": "prisma db push",
+    "postinstall": "prisma generate"
   },
   "dependencies": {
     "@ai-sdk/openai": "^2.0.0",
