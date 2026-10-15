@@ -40,7 +40,7 @@ export interface UseLectureListenerResult {
   clearSignalCards: () => void;
   isGeneratingNotes: boolean;
   fullLectureNotes: string | null;
-  generateFullNotes: () => Promise<string | null>;
+  generateFullNotes: (metadata?: { courseCode?: string; title?: string }) => Promise<string | null>;
 }
 
 type SpeechRecognitionAlternative = {
@@ -433,7 +433,7 @@ export function useLectureListener(
     }
   }, [maxChunkChars, onPanicSummary, panicWordCount, reportError]);
 
-  const generateFullNotes = useCallback(async (): Promise<string | null> => {
+  const generateFullNotes = useCallback(async (metadata?: { courseCode?: string; title?: string }): Promise<string | null> => {
     const transcript = fullLectureTranscript.current.trim();
     if (!transcript) {
       reportError("No lecture transcript has been captured yet. Start recording and try again.");
@@ -444,7 +444,7 @@ export function useLectureListener(
       const response = await fetch("/api/notes", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ transcript }),
+        body: JSON.stringify({ transcript, courseCode: metadata?.courseCode, title: metadata?.title }),
       });
       if (!response.ok) {
         const details = (await response.json().catch(() => null)) as { error?: string } | null;
