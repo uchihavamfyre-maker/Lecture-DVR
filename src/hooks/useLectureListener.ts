@@ -263,6 +263,8 @@ export function useLectureListener(
         });
       }
     } catch (chunkError) {
+      // Never discard captured lecture text when the AI/API request fails.
+      transcriptBuffer.current = appendWithoutOverlap(chunkToProcess, transcriptBuffer.current);
       const message =
         chunkError instanceof Error
           ? chunkError.message
