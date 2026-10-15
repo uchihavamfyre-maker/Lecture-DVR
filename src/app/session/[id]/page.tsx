@@ -24,7 +24,7 @@ function formatElapsed(seconds: number): string {
 }
 
 function normalizePanicSummary(summary: string): string {
-  return summary.replace(/^\*\*(.*)\*\*$/s, "$1").trim();
+  return summary.replace(/^\*\*([\s\S]*)\*\*$/, "$1").trim();
 }
 
 export default function SessionPage({
