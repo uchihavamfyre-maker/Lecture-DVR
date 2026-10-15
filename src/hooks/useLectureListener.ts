@@ -115,7 +115,7 @@ export function useLectureListener(
     onError,
   } = options;
 
-  const recognitionRef = useRef<ReturnType<SpeechRecognitionConstructor> | null>(null);
+  const recognitionRef = useRef<InstanceType<SpeechRecognitionConstructor> | null>(null);
   const transcriptBuffer = useRef("");
   const rollingAudioLog = useRef("");
   const shouldRestart = useRef(false);
