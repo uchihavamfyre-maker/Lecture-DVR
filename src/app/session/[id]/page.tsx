@@ -45,6 +45,9 @@ export default function SessionPage({
     isListening,
     isProcessing,
     isPanicProcessing,
+    isGeneratingNotes,
+    fullLectureNotes,
+    generateFullNotes,
     elapsedSeconds,
     rawFeed,
     signalCards,
@@ -178,9 +181,19 @@ export default function SessionPage({
                 <p className="mt-1 text-xs text-gray-400">Key concepts, facts, formulas, examples, exam hints, and deadlines — filler filtered out</p>
               </div>
             </div>
-            <span className="text-xs text-gray-400" aria-live="polite">
-              {isProcessing ? "Filtering latest chunk..." : `${signalCards.length} cards captured`}
-            </span>
+            <div className="flex flex-col items-end gap-2">
+              <span className="text-xs text-gray-400" aria-live="polite">
+                {isProcessing ? "Filtering latest chunk..." : `${signalCards.length} cards captured`}
+              </span>
+              <button
+                type="button"
+                onClick={() => void generateFullNotes()}
+                disabled={isGeneratingNotes || !rawFeed.trim()}
+                className="rounded-lg bg-cyan-500 px-3 py-2 text-xs font-bold text-gray-950 transition hover:bg-cyan-400 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {isGeneratingNotes ? "Generating notes..." : "Generate Full Lecture Notes"}
+              </button>
+            </div>
           </div>
 
           <div className="grid max-h-[65vh] grid-cols-1 gap-3 overflow-y-auto pr-1 md:grid-cols-2">
@@ -209,6 +222,41 @@ export default function SessionPage({
               ))
             )}
           </div>
+          {fullLectureNotes && (
+            <section className="mt-4 rounded-xl border border-cyan-400/30 bg-gray-950/80 p-4">
+              <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                <div>
+                  <h3 className="text-sm font-bold uppercase tracking-wider text-cyan-200">Complete Lecture Notes</h3>
+                  <p className="mt-1 text-xs text-gray-400">Organized study notes generated from the captured lecture transcript.</p>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => void navigator.clipboard.writeText(fullLectureNotes)}
+                    className="rounded-md border border-gray-700 px-3 py-2 text-xs font-semibold text-gray-200 hover:bg-gray-800"
+                  >
+                    Copy notes
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const blob = new Blob([fullLectureNotes], { type: "text/markdown;charset=utf-8" });
+                      const url = URL.createObjectURL(blob);
+                      const link = document.createElement("a");
+                      link.href = url;
+                      link.download = "lecture-dvr-notes.md";
+                      link.click();
+                      URL.revokeObjectURL(url);
+                    }}
+                    className="rounded-md border border-gray-700 px-3 py-2 text-xs font-semibold text-gray-200 hover:bg-gray-800"
+                  >
+                    Download .md
+                  </button>
+                </div>
+              </div>
+              <pre className="max-h-[70vh] overflow-auto whitespace-pre-wrap break-words text-sm leading-7 text-gray-200">{fullLectureNotes}</pre>
+            </section>
+          )}
         </section>
       </section>
 
