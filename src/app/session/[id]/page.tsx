@@ -53,6 +53,7 @@ export default function SessionPage({
     isGeneratingNotes,
     fullLectureNotes,
     generateFullNotes,
+    getFullTranscript,
     elapsedSeconds,
     rawFeed,
     signalCards,
@@ -116,7 +117,7 @@ export default function SessionPage({
           courseCode: lectureMeta.courseCode,
           title: lectureMeta.title,
           notes,
-          transcript: rawFeed,
+          transcript: getFullTranscript(),
         }),
       });
       const result = await response.json();
