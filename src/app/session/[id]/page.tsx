@@ -2,6 +2,7 @@
 
 import { AlertTriangle, BrainCircuit, Radio, Timer, Zap } from "lucide-react";
 import { use, useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import { type FlashcardCategory, useLectureListener } from "@/hooks/useLectureListener";
 
 const categoryStyles: Record<FlashcardCategory, string> = {
@@ -35,6 +36,10 @@ export default function SessionPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const [isFinishing, setIsFinishing] = useState(false);
+  const [finishMessage, setFinishMessage] = useState<string | null>(null);
   const [panicToast, setPanicToast] = useState<string | null>(null);
   const [showPanicModal, setShowPanicModal] = useState(false);
   const [language, setLanguage] = useState("en-US");
@@ -60,10 +65,10 @@ export default function SessionPage({
 
   const lectureMeta = useMemo(
     () => ({
-      title: `Lecture Session ${id.slice(0, 8)}`,
-      courseCode: "FPE-301",
+      title: searchParams.get("title")?.trim() || ("Lecture Session " + id.slice(0, 8)),
+      courseCode: searchParams.get("courseCode")?.trim() || "UNSPECIFIED",
     }),
-    [id],
+    [id, searchParams],
   );
 
   useEffect(() => {
@@ -88,6 +93,40 @@ export default function SessionPage({
 
     setPanicToast(summary ? "Captured the last 60 seconds." : "Unable to process panic snippet.");
     window.setTimeout(() => setPanicToast(null), 2600);
+  };
+
+  const handleFinishLecture = async () => {
+    if (isFinishing) return;
+    setIsFinishing(true);
+    setFinishMessage("Finishing lecture and generating your notes...");
+    stopListening();
+    const notes = await generateFullNotes({ courseCode: lectureMeta.courseCode, title: lectureMeta.title });
+    if (!notes) {
+      setFinishMessage("Notes were not saved because generation failed. Check the error and try again.");
+      setIsFinishing(false);
+      return;
+    }
+
+    try {
+      const storageKey = "lecture-dvr-saved-notes-v1";
+      const existing = JSON.parse(localStorage.getItem(storageKey) || "[]") as Array<{ id: string; createdAt: string; [key: string]: unknown }>;
+      const cutoff = Date.now() - 10 * 24 * 60 * 60 * 1000;
+      const fresh = existing.filter((item) => item && item.createdAt && Date.parse(item.createdAt) >= cutoff);
+      const saved = {
+        id,
+        courseCode: lectureMeta.courseCode,
+        title: lectureMeta.title,
+        createdAt: new Date().toISOString(),
+        notes,
+      };
+      const withoutDuplicate = fresh.filter((item) => item.id !== id);
+      localStorage.setItem(storageKey, JSON.stringify([saved, ...withoutDuplicate]));
+      setFinishMessage("Lecture notes saved for 10 days. Opening Your Notes...");
+      window.setTimeout(() => router.push("/notes"), 900);
+    } catch {
+      setFinishMessage("Notes were generated, but this browser could not save them. Check available browser storage.");
+      setIsFinishing(false);
+    }
   };
 
   return (
@@ -150,6 +189,14 @@ export default function SessionPage({
               className="rounded-lg border border-gray-700 px-3 py-1.5 text-xs font-semibold uppercase tracking-wider text-gray-200 transition hover:border-gray-500 hover:bg-gray-800"
             >
               {isListening ? "Pause" : "Resume"}
+            </button>
+            <button
+              type="button"
+              onClick={() => void handleFinishLecture()}
+              disabled={isFinishing}
+              className="rounded-lg bg-cyan-300 px-3 py-2 text-xs font-bold uppercase tracking-wider text-gray-950 hover:bg-cyan-200 disabled:opacity-50"
+            >
+              {isFinishing ? "Finishing..." : "Finish Lecture"}
             </button>
           </div>
         </div>
@@ -272,6 +319,12 @@ export default function SessionPage({
           className="fixed bottom-24 left-1/2 z-40 w-[min(92vw,520px)] -translate-x-1/2 rounded-xl border border-red-500/40 bg-red-500/20 p-4 text-sm text-red-100"
         >
           {error}
+        </div>
+      )}
+
+      {finishMessage && (
+        <div role="status" aria-live="polite" className="fixed left-1/2 top-20 z-40 w-[min(92vw,520px)] -translate-x-1/2 rounded-xl border border-cyan-400/40 bg-cyan-500/15 p-4 text-sm text-cyan-100">
+          {finishMessage}
         </div>
       )}
 
