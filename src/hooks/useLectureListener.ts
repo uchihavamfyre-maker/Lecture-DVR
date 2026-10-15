@@ -41,6 +41,7 @@ export interface UseLectureListenerResult {
   isGeneratingNotes: boolean;
   fullLectureNotes: string | null;
   generateFullNotes: (metadata?: { courseCode?: string; title?: string }) => Promise<string | null>;
+  getFullTranscript: () => string;
 }
 
 type SpeechRecognitionAlternative = {
@@ -464,6 +465,8 @@ export function useLectureListener(
     }
   }, [reportError]);
 
+  const getFullTranscript = useCallback(() => fullLectureTranscript.current.trim(), []);
+
   const clearSignalCards = useCallback(() => {
     setSignalCards([]);
   }, []);
@@ -540,5 +543,6 @@ export function useLectureListener(
     isGeneratingNotes,
     fullLectureNotes,
     generateFullNotes,
+    getFullTranscript,
   };
 }
