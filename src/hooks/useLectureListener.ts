@@ -131,7 +131,7 @@ export function useLectureListener(
   options: UseLectureListenerOptions = {},
 ): UseLectureListenerResult {
   const {
-    filterIntervalMs = 60_000,
+    filterIntervalMs = 15_000,
     minChunkLength = 20,
     rollingWordLimit = 1_500,
     panicWordCount = 200,
@@ -441,13 +441,9 @@ export function useLectureListener(
   }, [autoStart, isSupported, startListening, stopListening]);
 
   useEffect(() => {
-    if (!isListening) {
-      if (processingInterval.current) {
-        clearInterval(processingInterval.current);
-        processingInterval.current = null;
-      }
-      return;
-    }
+    // Keep this timer alive across the brief stop/start gaps that mobile
+    // SpeechRecognition creates when it automatically restarts.
+    if (!autoStart || !isSupported) return;
 
     processingInterval.current = setInterval(() => {
       void processTranscriptChunk();
@@ -459,7 +455,7 @@ export function useLectureListener(
         processingInterval.current = null;
       }
     };
-  }, [filterIntervalMs, isListening, processTranscriptChunk]);
+  }, [autoStart, filterIntervalMs, isSupported, processTranscriptChunk]);
 
   useEffect(() => {
     const ticker = setInterval(() => {
