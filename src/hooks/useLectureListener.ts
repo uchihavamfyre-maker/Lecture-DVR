@@ -91,6 +91,34 @@ function trimToLastChars(source: string, maxChars: number): string {
   return normalized.slice(normalized.length - maxChars);
 }
 
+
+/**
+ * SpeechRecognition can resend overlapping final results after a mobile-browser
+ * restart. Remove the longest suffix/prefix overlap before appending text.
+ */
+function appendWithoutOverlap(existing: string, incoming: string): string {
+  const left = existing.trim();
+  const right = incoming.trim();
+
+  if (!left) return right;
+  if (!right) return left;
+
+  const leftWords = left.split(/\\s+/);
+  const rightWords = right.split(/\\s+/);
+  const comparable = (word: string) => word.toLocaleLowerCase().replace(/^[^\\p{L}\\p{N}]+|[^\\p{L}\\p{N}]+$/gu, "");
+  const maxOverlap = Math.min(leftWords.length, rightWords.length, 40);
+
+  for (let size = maxOverlap; size > 0; size -= 1) {
+    const suffix = leftWords.slice(-size).map(comparable);
+    const prefix = rightWords.slice(0, size).map(comparable);
+    if (suffix.every((word, index) => word === prefix[index])) {
+      return [...leftWords, ...rightWords.slice(size)].join(" ");
+    }
+  }
+
+  return `${left} ${right}`;
+}
+
 function safeUniqueId(prefix: string): string {
   if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
     return `${prefix}-${crypto.randomUUID()}`;
