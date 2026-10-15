@@ -242,9 +242,7 @@ export function useLectureListener(
         body: JSON.stringify({ transcript: chunkToProcess }),
       });
 
-      if (!response.ok) {
-        throw new Error(`Filter request failed with status ${response.status}`);
-      }
+      if (!response.ok) {\n        const details = (await response.json().catch(() => null)) as { error?: string } | null;\n        throw new Error(details?.error || `Filter request failed with status ${response.status}`);\n      }
 
       const payload = (await response.json()) as unknown;
       const cards = normalizeCards(payload);
@@ -305,17 +303,9 @@ export function useLectureListener(
         }
 
         if (finalChunk) {
-          transcriptBuffer.current = trimToLastChars(
-            `${transcriptBuffer.current} ${finalChunk}`,
-            maxChunkChars,
-          );
-          rollingAudioLog.current = trimToLastWords(
-            `${rollingAudioLog.current} ${finalChunk}`,
-            rollingWordLimit,
-          );
-          setRawCommitted((previous) =>
-            trimToLastWords(`${previous} ${finalChunk}`.trim(), maxRawFeedWords),
-          );
+          transcriptBuffer.current = trimToLastChars(appendWithoutOverlap(transcriptBuffer.current, finalChunk), maxChunkChars);
+          rollingAudioLog.current = trimToLastWords(appendWithoutOverlap(rollingAudioLog.current, finalChunk), rollingWordLimit);
+          setRawCommitted((previous) => trimToLastWords(appendWithoutOverlap(previous, finalChunk), maxRawFeedWords));
         }
 
         setRawInterim(interimChunk.trim());
@@ -388,9 +378,7 @@ export function useLectureListener(
         body: JSON.stringify({ transcript: snippet }),
       });
 
-      if (!response.ok) {
-        throw new Error(`Panic request failed with status ${response.status}`);
-      }
+      if (!response.ok) {\n        const details = (await response.json().catch(() => null)) as { error?: string } | null;\n        throw new Error(details?.error || `Panic request failed with status ${response.status}`);\n      }
 
       const payload = (await response.json()) as unknown;
       const summary =
