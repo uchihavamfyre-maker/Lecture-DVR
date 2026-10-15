@@ -1,19 +1,19 @@
 "use client";
 
 import { FormEvent, useEffect, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { ArrowLeft, BookOpenText, LogIn } from "lucide-react";
 
 export default function AccountPage() {
   const router = useRouter();
-  const params = useSearchParams();
-  const [mode, setMode] = useState<"login" | "register">(params.get("mode") === "register" ? "register" : "login");
+  const [nextPath, setNextPath] = useState("/notes");
+  const [mode, setMode] = useState<"login" | "register">("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => { void fetch("/api/auth/me").then((r) => r.json()).then((d) => { if (d.user) router.replace(params.get("next") || "/notes"); }).catch(() => {}); }, [router, params]);
+  useEffect(() => { const query = new URLSearchParams(window.location.search); const next = query.get("next") || "/notes"; const safeNext = next.startsWith("/") && !next.startsWith("//") ? next : "/notes"; setNextPath(safeNext); setMode(query.get("mode") === "register" ? "register" : "login"); void fetch("/api/auth/me").then((r) => r.json()).then((d) => { if (d.user) router.replace(safeNext); }).catch(() => {}); }, [router]);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -25,7 +25,7 @@ export default function AccountPage() {
       });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || "Unable to authenticate.");
-      router.push(params.get("next") || "/notes"); router.refresh();
+      router.push(nextPath); router.refresh();
     } catch (e) { setError(e instanceof Error ? e.message : "Unable to authenticate."); }
     finally { setBusy(false); }
   }
