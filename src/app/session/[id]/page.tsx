@@ -238,7 +238,7 @@ export default function SessionPage({
       )}
 
       <footer className="mx-auto max-w-7xl px-4 pb-24 pt-2 text-center text-xs text-gray-600">
-        Lecture DVR · Developer: Akshit Das
+        Developed by Akshat Chitransh
       </footer>
 
       <button
