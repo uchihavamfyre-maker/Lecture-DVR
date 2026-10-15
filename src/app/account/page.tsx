@@ -13,7 +13,7 @@ export default function AccountPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => { void fetch("/api/auth/me").then((r) => r.json()).then((d) => { if (d.user) router.replace("/notes"); }).catch(() => {}); }, [router]);
+  useEffect(() => { void fetch("/api/auth/me").then((r) => r.json()).then((d) => { if (d.user) router.replace(params.get("next") || "/notes"); }).catch(() => {}); }, [router, params]);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -25,7 +25,7 @@ export default function AccountPage() {
       });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || "Unable to authenticate.");
-      router.push("/notes"); router.refresh();
+      router.push(params.get("next") || "/notes"); router.refresh();
     } catch (e) { setError(e instanceof Error ? e.message : "Unable to authenticate."); }
     finally { setBusy(false); }
   }
