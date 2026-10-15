@@ -108,23 +108,23 @@ export default function SessionPage({
     }
 
     try {
-      const storageKey = "lecture-dvr-saved-notes-v1";
-      const existing = JSON.parse(localStorage.getItem(storageKey) || "[]") as Array<{ id: string; createdAt: string; [key: string]: unknown }>;
-      const cutoff = Date.now() - 10 * 24 * 60 * 60 * 1000;
-      const fresh = existing.filter((item) => item && item.createdAt && Date.parse(item.createdAt) >= cutoff);
-      const saved = {
-        id,
-        courseCode: lectureMeta.courseCode,
-        title: lectureMeta.title,
-        createdAt: new Date().toISOString(),
-        notes,
-      };
-      const withoutDuplicate = fresh.filter((item) => item.id !== id);
-      localStorage.setItem(storageKey, JSON.stringify([saved, ...withoutDuplicate]));
-      setFinishMessage("Lecture notes saved for 10 days. Opening Your Notes...");
+      const response = await fetch("/api/lectures", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id,
+          courseCode: lectureMeta.courseCode,
+          title: lectureMeta.title,
+          notes,
+          transcript: rawFeed,
+        }),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || "Could not save this lecture.");
+      setFinishMessage("Lecture notes saved to your account for 10 days. Opening Your Notes...");
       window.setTimeout(() => router.push("/notes"), 900);
-    } catch {
-      setFinishMessage("Notes were generated, but this browser could not save them. Check available browser storage.");
+    } catch (saveError) {
+      setFinishMessage(saveError instanceof Error ? saveError.message : "Notes were generated but could not be saved. Please retry.");
       setIsFinishing(false);
     }
   };
