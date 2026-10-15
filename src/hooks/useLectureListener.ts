@@ -242,7 +242,10 @@ export function useLectureListener(
         body: JSON.stringify({ transcript: chunkToProcess }),
       });
 
-      if (!response.ok) {\n        const details = (await response.json().catch(() => null)) as { error?: string } | null;\n        throw new Error(details?.error || `Filter request failed with status ${response.status}`);\n      }
+      if (!response.ok) {
+        const details = (await response.json().catch(() => null)) as { error?: string } | null;
+        throw new Error(details?.error || `Filter request failed with status ${response.status}`);
+      }
 
       const payload = (await response.json()) as unknown;
       const cards = normalizeCards(payload);
@@ -378,7 +381,10 @@ export function useLectureListener(
         body: JSON.stringify({ transcript: snippet }),
       });
 
-      if (!response.ok) {\n        const details = (await response.json().catch(() => null)) as { error?: string } | null;\n        throw new Error(details?.error || `Panic request failed with status ${response.status}`);\n      }
+      if (!response.ok) {
+        const details = (await response.json().catch(() => null)) as { error?: string } | null;
+        throw new Error(details?.error || `Panic request failed with status ${response.status}`);
+      }
 
       const payload = (await response.json()) as unknown;
       const summary =
